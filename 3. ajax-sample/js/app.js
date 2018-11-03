@@ -69,18 +69,18 @@ const bookListView = {
 const bookView = {
     init: function(){
         this.viewport = document.getElementById('viewerCanvas');
+        google.books.load();
+        google.books.setOnLoadCallback(function(){
+            bookView.render();
+        })
         this.render();
     },
     render: function () {
         console.log(controller.getCurrentBook());
-        google.books.load();
-        google.books.setOnLoadCallback(function(){
-            const viewer = new google.books.DefaultViewer(bookView.viewport);
-            const currentBook = controller.getCurrentBook();
-            viewer.load(currentBook.id);
-        });
+        const viewer = new google.books.DefaultViewer(bookView.viewport);
+        const currentBook = controller.getCurrentBook();
+        viewer.load(currentBook.id);
     },
-
 }
 
 controller.init();
