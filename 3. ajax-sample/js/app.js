@@ -10,8 +10,8 @@ const model = {
     itemPerPage : 10,
     nextStartIndex : function(){
         return model.startIndex + model.itemPerPage;
-    }
-
+    },
+    loadMoreCount : 0
 }
 
 const controller = {
@@ -23,11 +23,12 @@ const controller = {
     },
     retrieveBookFromAPI: function () {
         // console.log(model.startIndex);
+        bookListView.loadingIcon('show');
         fetch(`${model.apiUrl}?q=${model.keyword}&startIndex=${model.startIndex}`)
             .then(function (response) {
                 return response.json();
             })
-            .then(function (books) {                
+            .then(function (books) {   
                 model.books = model.books.concat(books.items);
                 model.currentBook = books.items[0];
 
@@ -40,6 +41,7 @@ const controller = {
 
                 bookListView.render();
                 bookView.render();
+                bookListView.loadingIcon('hide');
             });
     },
     getBooks: function () {
@@ -66,6 +68,7 @@ const controller = {
         bookListView.clear();
     },
     loadMore: function(){
+        model.loadMoreCount = model.loadMoreCount+1;
         if(model.hasMoreBook) {
             this.retrieveBookFromAPI();
         }
@@ -78,27 +81,40 @@ const controller = {
 const bookListView = {
     init: function () {
         this.bookListElem = document.getElementById('bookList');
-
-        const viewmore = document.getElementById('btnViewMore');
+        this.bookListViewElem = document.getElementById('bookListView');
+        this.loading2 = document.getElementById('loading');
+        // console.log(this.loading2.classList);
+        /*const viewmore = document.getElementById('btnViewMore');
         viewmore.addEventListener('click', function(){
             controller.loadMore();
-        })
+        })*/
+
+        window.addEventListener("scroll", function () {
+            console.log('scroll');
+            if(!model.hasMoreBook) {
+                return false;
+            }
+            let bottom = document.documentElement.clientHeight;
+            let currentBottom = Math.ceil(document.documentElement.getBoundingClientRect().bottom);
+            if(currentBottom < bottom+2) {
+                controller.loadMore();
+                console.log(model.loadMoreCount);
+            }
+        }, false);
     },
     render: function () {
         this.clear();
         this.books = controller.getBooks();        
         this.books.forEach(function(book){            
             bookListView.bookListElem.appendChild(bookListView.buildBook(book));
-        });        
+        });     
     },
     buildBook : function(book){
         const bookDiv = document.createElement('div');
-        // console.log(book);
-        console.log(book.volumeInfo.title);
         bookDiv.classList.add('book');
         bookDiv.innerHTML = `
         <div class="content">
-            <img src=${book.volumeInfo.imageLinks.smallThumbnail} alt="${book.volumeInfo.title}">
+            <img src="${book.volumeInfo.title}" alt="${book.volumeInfo.title}">
         </div>
         <div class="title">${book.volumeInfo.title}</div>
         `;
@@ -109,6 +125,14 @@ const bookListView = {
     },
     clear: function(){
         this.bookListElem.innerHTML = '';
+    },
+    loadingIcon: function(iconStatus){
+        if(iconStatus == 'show') {
+            document.getElementById('loading').classList.add("loader");
+        }
+        else {
+            document.getElementById('loading').classList.remove("loader");
+        }
     }
 }
 
@@ -121,7 +145,6 @@ const bookView = {
         });
     },
     render: function () {
-        console.log(controller.getCurrentBook());       
         const viewer = new google.books.DefaultViewer(bookView.viewport);
         const currentBook = controller.getCurrentBook(); 
         viewer.load(currentBook.id);
